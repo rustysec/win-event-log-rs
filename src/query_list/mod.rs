@@ -1,5 +1,5 @@
-#![allow(dead_code)]
-
+use std::convert::AsRef;
+#[allow(dead_code)]
 use std::fmt;
 
 mod condition;
@@ -7,10 +7,10 @@ mod event_filter;
 mod selector;
 mod suppressor;
 
-pub use condition::Condition;
-pub use event_filter::EventFilter;
-pub use selector::Selector;
-pub use suppressor::Suppressor;
+pub use self::condition::Condition;
+pub use self::event_filter::EventFilter;
+pub use self::selector::Selector;
+pub use self::suppressor::Suppressor;
 
 #[derive(Clone)]
 pub enum Comparison {
@@ -67,6 +67,12 @@ impl fmt::Display for QueryList {
             index += 1;
         }
         write!(f, "\n</QueryList>")
+    }
+}
+
+impl Into<String> for QueryList {
+    fn into(self) -> String {
+        self.to_string()
     }
 }
 

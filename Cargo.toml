@@ -1,10 +1,20 @@
 [package]
-name = "win-event-log-rs"
+name = "win-event-log"
 version = "0.1.0"
 authors = ["russ <russ@infocyte.com>"]
 edition = "2018"
 
 [dependencies]
-
+lazy_static = "1.2.0"
+serde = { version = "1.0.85", optional = true }
+serde_derive = { version = "*", optional = true }
+serde-xml-rs = { version = "*", optional = true }
+widestring = "0.4.0"
+ 
 [dependencies.winapi]
 version = "*"
+features = [ "minwindef", "winnt", "winevt", "libloaderapi" ]
+
+[features]
+default = ["xml"]
+xml = ["serde", "serde_derive", "serde-xml-rs"]
