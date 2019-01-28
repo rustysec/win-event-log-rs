@@ -1,4 +1,3 @@
-use std::convert::AsRef;
 #[allow(dead_code)]
 use std::fmt;
 
@@ -33,6 +32,7 @@ impl std::fmt::Display for Comparison {
     }
 }
 
+#[derive(Clone)]
 pub struct QueryList {
     queries: Vec<Query>,
 }
@@ -131,7 +131,7 @@ impl std::fmt::Display for SelectOrSuppress {
 mod tests {
     #[test]
     fn simple_query() {
-        use crate::{Comparison, Condition, EventFilter, Query, QueryList, Selector};
+        use crate::prelude::*;
         let list = QueryList::new()
             .with_query(
                 Query::new()

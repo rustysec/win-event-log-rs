@@ -1,20 +1,26 @@
+#[cfg(feature = "xml")]
+use serde::Deserialize;
+#[cfg(feature = "xml")]
+use serde_xml_rs::from_str;
 use std::ffi::CString;
 use std::fmt;
 use std::mem::transmute;
-use std::ptr::{null, null_mut};
+use std::ptr::null_mut;
 use widestring::U16String;
-use winapi::shared::minwindef::{BOOL, DWORD, FILETIME, PBYTE, PDWORD};
+use winapi::shared::minwindef::{BOOL, DWORD, PDWORD};
+use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::libloaderapi::{GetModuleHandleA, GetProcAddress, LoadLibraryA};
-use winapi::um::winnt::{
-    HANDLE, LCID, LONGLONG, LPCSTR, LPCWSTR, LPSTR, LPWSTR, PHANDLE, PSID, PVOID, ULONGLONG,
-};
+use winapi::um::winnt::{HANDLE, LPCWSTR, PVOID};
 
-#[allow(dead_code)]
-const EvtQueryChannelPath: u32 = 0x1;
-const EvtQueryFilePath: u32 = 0x2;
-const EvtQueryForwardDirection: u32 = 0x100;
-const EvtQueryReverseDirection: u32 = 0x200;
-const EvtQueryTolerateQueryErrors: u32 = 0x1000;
+bitflags! {
+    struct EvtQueryOptions: u32 {
+        const EVT_QUERY_CHANNEL_PATH = 0x1;
+        const EvtQueryFilePath= 0x2;
+        const EvtQueryForwardDirection= 0x100;
+        const EvtQueryReverseDirection= 0x200;
+        const EvtQueryTolerateQueryErrors= 0x1000;
+    }
+}
 
 type EvtHandle = HANDLE;
 type PevtHandle = *mut HANDLE;
@@ -48,43 +54,79 @@ type EvtRenderFn = unsafe extern "system" fn(
     PropertyCount: PDWORD,
 ) -> BOOL;
 
+/// Defines the EvtClose() function signature, for lazy loading
+type EvtCloseFn = unsafe extern "system" fn(Object: EvtHandle) -> BOOL;
+
+#[derive(Clone)]
+pub enum EvtApi {
+    Close(EvtCloseFn),
+    Next(EvtNextFn),
+    Query(EvtQueryFn),
+    Render(EvtRenderFn),
+}
+
 /// Simply tries to dynamically load a function from `wevtapi.dll`, if the
 /// function does not exist, or the DLL cannot be loaded, it returns `None`
 ///
 /// # Arguments
 /// `function` - the name of the function to load
 ///
-fn try_load_from_dll<T>(function: &str) -> Option<Box<T>> {
-    let module = CString::new("wevtapi.dll").unwrap().as_ptr();
-    let function = CString::new(function).unwrap();
+fn try_load_from_dll(function: &str) -> Option<EvtApi> {
+    let ffi_module = CString::new("wevtapi.dll").unwrap();
+    let ffi_function = CString::new(function).unwrap();
 
-    let handle = match unsafe { GetModuleHandleA(module) } {
-        i if i == null_mut() => match unsafe { LoadLibraryA(module) } {
-            i if i == null_mut() => None,
-            i => Some(i),
+    let handle = match unsafe { GetModuleHandleA(ffi_module.as_ptr()) } {
+        i if i == null_mut() => match unsafe { LoadLibraryA(ffi_module.as_ptr()) } {
+            j if j == null_mut() => None,
+            j => Some(j),
         },
         i => Some(i),
     };
     match handle {
-        Some(h) => match unsafe { GetProcAddress(h, function.as_ptr()) } {
+        Some(h) => match unsafe { GetProcAddress(h, ffi_function.as_ptr()) } {
             i if i == null_mut() => None,
-            addr => unsafe { Some(transmute::<HANDLE, Box<T>>(addr as _)) },
+            addr => match function.as_ref() {
+                "EvtClose" => Some(EvtApi::Close(unsafe {
+                    transmute::<HANDLE, EvtCloseFn>(addr as _)
+                })),
+                "EvtNext" => Some(EvtApi::Next(unsafe {
+                    transmute::<HANDLE, EvtNextFn>(addr as _)
+                })),
+                "EvtQuery" => Some(EvtApi::Query(unsafe {
+                    transmute::<HANDLE, EvtQueryFn>(addr as _)
+                })),
+                "EvtRender" => Some(EvtApi::Render(unsafe {
+                    transmute::<HANDLE, EvtRenderFn>(addr as _)
+                })),
+                _ => None,
+            },
         },
         None => None,
     }
 }
 
 lazy_static! {
-    pub static ref EvtQuery: Option<Box<EvtQueryFn>> =
-        { try_load_from_dll::<EvtQueryFn>("EvtQuery") };
-    pub static ref EvtNext: Option<Box<EvtNextFn>> = { try_load_from_dll::<EvtNextFn>("EvtQuery") };
-    pub static ref EvtRender: Option<Box<EvtRenderFn>> =
-        { try_load_from_dll::<EvtRenderFn>("EvtQuery") };
+    pub static ref EvtClose: Option<EvtApi> = { try_load_from_dll("EvtClose") };
+    pub static ref EvtNext: Option<EvtApi> = { try_load_from_dll("EvtNext") };
+    pub static ref EvtQuery: Option<EvtApi> = { try_load_from_dll("EvtQuery") };
+    pub static ref EvtRender: Option<EvtApi> = { try_load_from_dll("EvtRender") };
+}
+
+pub struct EvtHandleWrapper(EvtHandle);
+
+impl Drop for EvtHandleWrapper {
+    fn drop(&mut self) {
+        if let Some(EvtApi::Close(ref close)) = *EvtClose {
+            unsafe {
+                close(self.0);
+            }
+        }
+    }
 }
 
 /// Entry point for querying the event log
 pub struct WinEvents {
-    handle: Option<EvtHandle>,
+    handle: Option<EvtHandleWrapper>,
 }
 
 impl WinEvents {
@@ -107,23 +149,60 @@ impl WinEvents {
     /// </QueryList>"#);
     /// ```
     ///
-    pub fn get<T: Into<String>>(query: T) -> Result<WinEvents, String> {
+    pub fn get<T: Into<String> + Clone>(query: T) -> Result<WinEvents, String> {
         if EvtQuery.is_none() || EvtNext.is_none() || EvtRender.is_none() {
             Err("EvtQuery API is not available".to_owned())
         } else {
-            let evt_query = EvtQuery.clone().unwrap();
             let ffi_query = U16String::from(query.into());
-            match unsafe {
-                evt_query(
-                    null_mut(),
-                    null_mut(),
-                    ffi_query.as_ptr(),
-                    EvtQueryChannelPath,
-                )
-            } {
-                i if i == null_mut() => Err("There was an errorr processing the query".to_owned()),
-                i => Ok(WinEvents { handle: Some(i) }),
+            if let Some(EvtApi::Query(ref evt_query)) = *EvtQuery {
+                match unsafe {
+                    evt_query(
+                        null_mut(),
+                        null_mut(),
+                        ffi_query.as_ptr(),
+                        EvtQueryOptions::EVT_QUERY_CHANNEL_PATH.bits(),
+                    )
+                } {
+                    i if i == null_mut() => Err(format!(
+                        "There was an error processing the query: {}",
+                        unsafe { GetLastError() }
+                    )),
+                    i => Ok(WinEvents {
+                        handle: Some(EvtHandleWrapper(i)),
+                    }),
+                }
+            } else {
+                Err("There is an error calling EvtQuery() API".to_owned())
             }
+        }
+    }
+
+    pub fn next(&mut self) -> Option<EvtHandleWrapper> {
+        if let Some(ref handle) = self.handle {
+            let mut next_handle: Vec<EvtHandle> = vec![null_mut() as _];
+            match *EvtNext {
+                Some(EvtApi::Next(ref next)) => {
+                    let mut number_returned: DWORD = 0;
+                    if unsafe {
+                        next(
+                            handle.0,
+                            1,
+                            next_handle.as_mut_ptr() as _,
+                            0,
+                            0,
+                            &mut number_returned,
+                        )
+                    } > 0
+                    {
+                        Some(EvtHandleWrapper(next_handle[0]))
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            }
+        } else {
+            None
         }
     }
 }
@@ -137,13 +216,24 @@ impl IntoIterator for WinEvents {
     }
 }
 
-pub struct Event {
-    inner: String,
-}
+pub struct Event(String);
 
 impl fmt::Display for Event {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.inner)
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(feature = "xml")]
+impl Event {
+    pub fn into<'de, T>(self) -> T
+    where
+        T: Deserialize<'de> + Default,
+    {
+        match from_str(&self.0) {
+            Ok(o) => o,
+            _ => Default::default(),
+        }
     }
 }
 
@@ -154,7 +244,49 @@ pub struct WinEventsIntoIterator {
 impl Iterator for WinEventsIntoIterator {
     type Item = Event;
     fn next(&mut self) -> Option<Event> {
-        None
+        match self.win_events.next() {
+            Some(handle) => match *EvtRender {
+                Some(EvtApi::Render(ref render)) => {
+                    let mut buffer_used: DWORD = 0;
+                    let mut property_count: DWORD = 0;
+                    unsafe {
+                        if render(
+                            null_mut(),
+                            handle.0 as _,
+                            1,
+                            0,
+                            null_mut(),
+                            &mut buffer_used,
+                            &mut property_count,
+                        ) == 0
+                            && GetLastError() == 122
+                        {
+                            let mut buf: Vec<u16> = vec![0; buffer_used as usize];
+                            match render(
+                                null_mut(),
+                                handle.0 as _,
+                                1,
+                                buf.len() as _,
+                                buf.as_mut_ptr() as _,
+                                &mut buffer_used,
+                                &mut property_count,
+                            ) {
+                                0 => None,
+                                _ => {
+                                    let s = U16String::from_vec(&buf[0..buf.len() / 2])
+                                        .to_string_lossy();
+                                    Some(Event(s))
+                                }
+                            }
+                        } else {
+                            None
+                        }
+                    }
+                }
+                _ => None,
+            },
+            _ => None,
+        }
     }
 }
 

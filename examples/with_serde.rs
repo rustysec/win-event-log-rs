@@ -1,7 +1,34 @@
 extern crate win_event_log;
+#[macro_use]
+#[cfg(feature = "xml")]
+extern crate serde_derive;
 
+#[cfg(feature = "xml")]
 use win_event_log::{Comparison, Condition, EventFilter, Query, QueryList, Selector, WinEvents};
 
+#[cfg(feature = "xml")]
+#[derive(Deserialize, Default, Debug)]
+#[serde(rename_all = "PascalCase")]
+struct Provider {
+    pub name: Option<String>,
+    pub guid: Option<String>,
+}
+
+#[cfg(feature = "xml")]
+#[derive(Deserialize, Default, Debug)]
+#[serde(rename_all = "PascalCase")]
+struct System {
+    pub provider: Option<Provider>,
+}
+
+#[cfg(feature = "xml")]
+#[derive(Deserialize, Default, Debug)]
+#[serde(rename_all = "PascalCase")]
+struct MyEvent {
+    pub system: Option<System>,
+}
+
+#[cfg(feature = "xml")]
 fn main() {
     let conditions = vec![
         Condition::filter(EventFilter::level(1, Comparison::Equal)),
@@ -22,9 +49,15 @@ fn main() {
     match WinEvents::get(query) {
         Ok(events) => {
             if let Some(event) = events.into_iter().next() {
-                println!("{}", event);
+                let parsed: MyEvent = event.into();
+                println!("Parsed: {:?}", parsed);
             }
         }
         Err(e) => println!("Error: {}", e),
     }
+}
+
+#[cfg(not(feature = "xml"))]
+fn main() {
+    println!("This example requires serde");
 }

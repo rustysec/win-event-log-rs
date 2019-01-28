@@ -9,11 +9,12 @@
 //! here to provide a consistent API surface.
 
 #[macro_use]
+extern crate bitflags;
+#[macro_use]
 extern crate lazy_static;
 #[cfg(feature = "xml")]
 extern crate serde;
 #[cfg(feature = "xml")]
-#[macro_use]
 extern crate serde_derive;
 #[cfg(feature = "xml")]
 extern crate serde_xml_rs;
@@ -21,6 +22,11 @@ extern crate widestring;
 extern crate winapi;
 
 mod api;
-pub use self::api::{WinEvents, WinEventsIntoIterator};
+pub use self::api::{Event, WinEvents, WinEventsIntoIterator};
 mod query_list;
 pub use self::query_list::*;
+
+mod prelude {
+    pub use crate::api::*;
+    pub use crate::query_list::*;
+}
