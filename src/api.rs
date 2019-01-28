@@ -177,6 +177,7 @@ impl WinEvents {
         }
     }
 
+    /// Gets the next item from the event log. If there are no more evens `None` is returned.
     pub fn next(&mut self) -> Option<EvtHandleWrapper> {
         if let Some(ref handle) = self.handle {
             let mut next_handle: Vec<EvtHandle> = vec![null_mut() as _];
@@ -237,12 +238,27 @@ impl Event {
     }
 }
 
+/// An iterator abstraction over `WinEvents`
+///
+/// # Example
+///
+/// ```rust
+/// let query = QueryList::new()
+///     .with_query(Query::new().query())
+///     .build();
+/// let events = WinEvents::get(query).unwrap().into_iter();
+/// while let Some(event) = events.next() {
+/// // ...
+/// }
+/// ```
 pub struct WinEventsIntoIterator {
     win_events: WinEvents,
 }
 
 impl Iterator for WinEventsIntoIterator {
     type Item = Event;
+
+    /// Returns the next event. If there are no more events, `None` is returned.
     fn next(&mut self) -> Option<Event> {
         match self.win_events.next() {
             Some(handle) => match *EvtRender {

@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["russ <russ@infocyte.com>"]
 edition = "2018"
 
+[lib]
+doctest = true
+
 [package.metadata.docs.rs]
 default-target = "x86_64-pc-windows-gnu"
 
@@ -14,9 +17,6 @@ serde = { version = "1.0.85", optional = true }
 serde_derive = { version = "1.0.85", optional = true, default-features = false }
 widestring = "0.4.0"
 
-[dev-dependencies]
-winapi = { version = "*", features = [ "errhandlingapi" ] }
-
 [dependencies.serde-xml-rs]
 version = "0.3.0"
 optional = true
@@ -26,7 +26,7 @@ features=["legacy-support"]
 default-features=false
  
 [dependencies.winapi]
-version = "*"
+version = "0.3.6"
 features = [ "errhandlingapi", "minwindef", "winnt", "winevt", "libloaderapi" ]
 
 [features]

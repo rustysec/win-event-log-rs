@@ -10,6 +10,7 @@ pub use self::event_filter::EventFilter;
 pub use self::query_item::{QueryItem, QueryItemType};
 
 #[derive(Clone)]
+/// Comparison conditions supported by the Windows Event Log
 pub enum Comparison {
     Equal,
     GreaterThan,
@@ -36,17 +37,20 @@ pub struct QueryList {
 }
 
 impl<'a> QueryList {
+    /// Create a new `QueryList`
     pub fn new() -> QueryList {
         QueryList {
             queries: Vec::new(),
         }
     }
 
+    /// Add a `Query` to a `QueryList`
     pub fn with_query(&'a mut self, query: Query) -> &'a mut Self {
         self.queries.push(query);
         self
     }
 
+    /// Prepare `QueryList` for use
     pub fn build(&self) -> QueryList {
         QueryList {
             queries: self.queries.clone(),
@@ -80,15 +84,18 @@ pub struct Query {
 }
 
 impl<'a> Query {
+    /// Create a new `Query`
     pub fn new() -> Query {
         Query { items: Vec::new() }
     }
 
+    /// Add `QueryItem` to `Query`
     pub fn item(&'a mut self, item: QueryItem) -> &'a mut Self {
         self.items.push(item);
         self
     }
 
+    /// Produce a `Query` from the builder
     pub fn query(&self) -> Query {
         Query {
             items: self.items.clone(),

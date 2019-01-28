@@ -7,6 +7,26 @@
 //! applications compiled against this crate will continue to work on legacy systems such
 //! as XP or Server 2003. In the future, the legacy APIs will be integrated seamlessly
 //! here to provide a consistent API surface.
+//!
+//! # Examples
+//!
+//! ```rust
+//! extern crate win_event_log;
+//! use win_event_log::prelude::*;
+//!
+//! let conditions = vec![ Condition::filter(EventFilter::level(1, Comparison::Equal)) ];
+//! let query =
+//! let query = QueryList.new()
+//!     .with_query(
+//!         Query::new().item(
+//!             QueryItem::selector("System".to_owned())
+//!             .system_conditions(Conditions::or(conditions))
+//!         ).query()
+//!     ).build();
+//! let events = WinEvent5::get(query).unwrap();
+//! ```
+//!
+
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
