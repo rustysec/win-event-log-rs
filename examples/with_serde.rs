@@ -4,7 +4,7 @@ extern crate win_event_log;
 extern crate serde_derive;
 
 #[cfg(feature = "xml")]
-use win_event_log::{Comparison, Condition, EventFilter, Query, QueryList, Selector, WinEvents};
+use win_event_log::prelude::*;
 
 #[cfg(feature = "xml")]
 #[derive(Deserialize, Default, Debug)]
@@ -37,8 +37,8 @@ fn main() {
     let query = QueryList::new()
         .with_query(
             Query::new()
-                .select(
-                    Selector::new("Application".to_owned())
+                .item(
+                    QueryItem::selector("Application".to_owned())
                         .system_conditions(Condition::or(conditions))
                         .build(),
                 )

@@ -14,7 +14,7 @@ use winapi::um::winnt::{HANDLE, LPCWSTR, PVOID};
 
 bitflags! {
     struct EvtQueryOptions: u32 {
-        const EVT_QUERY_CHANNEL_PATH = 0x1;
+        const EvtQueryChannelPath= 0x1;
         const EvtQueryFilePath= 0x2;
         const EvtQueryForwardDirection= 0x100;
         const EvtQueryReverseDirection= 0x200;
@@ -160,7 +160,7 @@ impl WinEvents {
                         null_mut(),
                         null_mut(),
                         ffi_query.as_ptr(),
-                        EvtQueryOptions::EVT_QUERY_CHANNEL_PATH.bits(),
+                        EvtQueryOptions::EvtQueryChannelPath.bits(),
                     )
                 } {
                     i if i == null_mut() => Err(format!(
@@ -295,15 +295,45 @@ mod tests {
     #[test]
     fn test_params_query_list() {
         use crate::{QueryList, WinEvents};
+        use winapi::um::errhandlingapi::GetLastError;
         let ql = QueryList::new();
-        let we = WinEvents::get(ql);
-        assert!(true);
+        match WinEvents::get(ql) {
+            Ok(_) => assert!(true),
+            Err(e) => match unsafe { GetLastError() } {
+                // false positive from wine
+                0 => assert!(true),
+                _ => {
+                    println!("test_params_query_list(): {}", e);
+                    assert!(false);
+                }
+            },
+        }
     }
 
     #[test]
     fn test_params_str() {
         use crate::WinEvents;
-        let we = WinEvents::get("test str");
-        assert!(true);
+        use winapi::um::errhandlingapi::GetLastError;
+        let query = r#"<QueryList>
+<Query Id="0">
+<Select Path="Security">
+*[System[((Level = 0) or (Level >= 4))]]
+and
+*[EventData[((Data[@Name = 'TargetUserName']) and (Data = 'SYSTEM'))]]
+</Select>
+</Query>
+</QueryList>"#;
+
+        match WinEvents::get(query) {
+            Ok(_) => assert!(true),
+            Err(e) => match unsafe { GetLastError() } {
+                // false positive from wine
+                0 => assert!(true),
+                _ => {
+                    println!("test_params_str(): {}", e);
+                    assert!(false);
+                }
+            },
+        }
     }
 }

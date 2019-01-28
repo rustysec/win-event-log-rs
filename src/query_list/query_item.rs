@@ -3,19 +3,44 @@ use std::fmt;
 use crate::query_list::condition;
 
 #[derive(Clone)]
-pub struct Selector {
+pub enum QueryItemType {
+    Suppressor,
+    Selector,
+}
+
+impl fmt::Display for QueryItemType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            QueryItemType::Suppressor => write!(f, "Suppress"),
+            QueryItemType::Selector => write!(f, "Select"),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct QueryItem {
+    query_item_type: QueryItemType,
     path: Option<String>,
     system_conditions: Option<condition::Condition>,
     event_data_conditions: Option<condition::Condition>,
 }
 
-impl<'a> Selector {
-    pub fn new(path: String) -> Selector {
-        Selector {
+impl<'a> QueryItem {
+    pub fn new(item_type: QueryItemType, path: String) -> QueryItem {
+        QueryItem {
+            query_item_type: item_type,
             path: Some(path),
             system_conditions: None,
             event_data_conditions: None,
         }
+    }
+
+    pub fn selector(path: String) -> QueryItem {
+        QueryItem::new(QueryItemType::Selector, path)
+    }
+
+    pub fn suppressor(path: String) -> QueryItem {
+        QueryItem::new(QueryItemType::Suppressor, path)
     }
 
     pub fn system_conditions(&'a mut self, conditions: condition::Condition) -> &'a mut Self {
@@ -28,21 +53,24 @@ impl<'a> Selector {
         self
     }
 
-    pub fn build(&self) -> Selector {
-        Selector {
+    pub fn build(&self) -> Self {
+        self.clone()
+        /*
+        QueryItem {
             path: self.path.clone(),
             system_conditions: self.system_conditions.clone(),
             event_data_conditions: self.event_data_conditions.clone(),
         }
+        */
     }
 }
 
-impl fmt::Display for Selector {
+impl fmt::Display for QueryItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.path {
             Some(ref path) => {
                 let mut parts = Vec::new();
-                write!(f, "<Select Path=\"{}\">\n", path)?;
+                write!(f, "<{} Path=\"{}\">\n", self.query_item_type, path)?;
                 if let Some(ref conditions) = self.system_conditions {
                     parts.push(format!("*[System[{}]]", conditions))
                 }
@@ -61,8 +89,8 @@ impl fmt::Display for Selector {
 mod tests {
     #[test]
     fn simple_level() {
-        use crate::{Comparison, Condition, EventFilter, Selector};
-        let selector = Selector::new("Application".to_owned())
+        use crate::prelude::*;
+        let selector = QueryItem::new(QueryItemType::Selector, "Application".to_owned())
             .system_conditions(Condition::filter(EventFilter::level(1, Comparison::Equal)))
             .build();
         assert_eq!(

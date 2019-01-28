@@ -1,6 +1,6 @@
 extern crate win_event_log;
 
-use win_event_log::{Comparison, Condition, EventFilter, Query, QueryList, Selector, WinEvents};
+use win_event_log::prelude::*;
 
 fn main() {
     let conditions = vec![
@@ -10,8 +10,8 @@ fn main() {
     let query = QueryList::new()
         .with_query(
             Query::new()
-                .select(
-                    Selector::new("Application".to_owned())
+                .item(
+                    QueryItem::selector("Application".to_owned())
                         .system_conditions(Condition::or(conditions))
                         .build(),
                 )

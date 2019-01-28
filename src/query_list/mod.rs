@@ -3,13 +3,11 @@ use std::fmt;
 
 mod condition;
 mod event_filter;
-mod selector;
-mod suppressor;
+mod query_item;
 
 pub use self::condition::Condition;
 pub use self::event_filter::EventFilter;
-pub use self::selector::Selector;
-pub use self::suppressor::Suppressor;
+pub use self::query_item::{QueryItem, QueryItemType};
 
 #[derive(Clone)]
 pub enum Comparison {
@@ -78,7 +76,7 @@ impl Into<String> for QueryList {
 
 #[derive(Clone)]
 pub struct Query {
-    items: Vec<SelectOrSuppress>,
+    items: Vec<QueryItem>,
 }
 
 impl<'a> Query {
@@ -86,13 +84,8 @@ impl<'a> Query {
         Query { items: Vec::new() }
     }
 
-    pub fn select(&'a mut self, selector: selector::Selector) -> &'a mut Self {
-        self.items.push(SelectOrSuppress::Select(selector));
-        self
-    }
-
-    pub fn suppress(&'a mut self, suppressor: Suppressor) -> &'a mut Self {
-        self.items.push(SelectOrSuppress::Suppress(suppressor));
+    pub fn item(&'a mut self, item: QueryItem) -> &'a mut Self {
+        self.items.push(item);
         self
     }
 
@@ -112,21 +105,6 @@ impl std::fmt::Display for Query {
     }
 }
 
-#[derive(Clone)]
-enum SelectOrSuppress {
-    Select(Selector),
-    Suppress(Suppressor),
-}
-
-impl std::fmt::Display for SelectOrSuppress {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            SelectOrSuppress::Select(ref s) => write!(f, "{}", s),
-            SelectOrSuppress::Suppress(ref s) => write!(f, "{}", s),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     #[test]
@@ -135,8 +113,8 @@ mod tests {
         let list = QueryList::new()
             .with_query(
                 Query::new()
-                    .select(
-                        Selector::new("Application".to_owned())
+                    .item(
+                        QueryItem::new(QueryItemType::Selector, "Application".to_owned())
                             .system_conditions(Condition::filter(EventFilter::level(
                                 1,
                                 Comparison::Equal,
@@ -161,7 +139,7 @@ mod tests {
 
     #[test]
     fn simple_or_query() {
-        use crate::{Comparison, Condition, EventFilter, Query, QueryList, Selector};
+        use crate::prelude::*;
         let conditions = vec![
             Condition::filter(EventFilter::level(1, Comparison::Equal)),
             Condition::filter(EventFilter::level(4, Comparison::GreaterThanOrEqual)),
@@ -169,8 +147,8 @@ mod tests {
         let list = QueryList::new()
             .with_query(
                 Query::new()
-                    .select(
-                        Selector::new("Application".to_owned())
+                    .item(
+                        QueryItem::new(QueryItemType::Selector, "Application".to_owned())
                             .system_conditions(Condition::or(conditions))
                             .build(),
                     )
@@ -191,7 +169,7 @@ mod tests {
 
     #[test]
     fn system_and_event_query() {
-        use crate::{Comparison, Condition, EventFilter, Query, QueryList, Selector};
+        use crate::prelude::*;
         let system_conditions = vec![
             Condition::filter(EventFilter::level(0, Comparison::Equal)),
             Condition::filter(EventFilter::level(4, Comparison::GreaterThanOrEqual)),
@@ -203,8 +181,8 @@ mod tests {
         let list = QueryList::new()
             .with_query(
                 Query::new()
-                    .select(
-                        Selector::new("Security".to_owned())
+                    .item(
+                        QueryItem::new(QueryItemType::Selector, "Security".to_owned())
                             .system_conditions(Condition::or(system_conditions))
                             .event_conditions(Condition::and(event_conditions))
                             .build(),

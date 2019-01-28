@@ -7,7 +7,6 @@
 //! applications compiled against this crate will continue to work on legacy systems such
 //! as XP or Server 2003. In the future, the legacy APIs will be integrated seamlessly
 //! here to provide a consistent API surface.
-
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
@@ -22,11 +21,13 @@ extern crate widestring;
 extern crate winapi;
 
 mod api;
-pub use self::api::{Event, WinEvents, WinEventsIntoIterator};
 mod query_list;
-pub use self::query_list::*;
+#[allow(unused_imports)]
+use api::WinEvents;
+#[allow(unused_imports)]
+use query_list::QueryList;
 
-mod prelude {
+pub mod prelude {
     pub use crate::api::*;
     pub use crate::query_list::*;
 }
