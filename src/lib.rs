@@ -19,7 +19,7 @@
 //! let query = QueryList.new()
 //!     .with_query(
 //!         Query::new().item(
-//!             QueryItem::selector("System".to_owned())
+//!             QueryItem::selector("System")
 //!             .system_conditions(Conditions::or(conditions))
 //!         ).query()
 //!     ).build();

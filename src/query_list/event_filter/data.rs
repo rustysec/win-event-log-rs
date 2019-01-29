@@ -6,8 +6,8 @@ pub struct Name {
 }
 
 impl Name {
-    pub fn new(name: String) -> Name {
-        Name { name: name }
+    pub fn new<T: Into<String>>(name: T) -> Name {
+        Name { name: name.into() }
     }
 }
 
@@ -23,8 +23,10 @@ pub struct Value {
 }
 
 impl Value {
-    pub fn new(value: String) -> Value {
-        Value { value: value }
+    pub fn new<T: Into<String>>(value: T) -> Value {
+        Value {
+            value: value.into(),
+        }
     }
 }
 

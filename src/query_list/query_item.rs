@@ -26,20 +26,20 @@ pub struct QueryItem {
 }
 
 impl<'a> QueryItem {
-    pub fn new(item_type: QueryItemType, path: String) -> QueryItem {
+    pub fn new<T: Into<String>>(item_type: QueryItemType, path: T) -> QueryItem {
         QueryItem {
             query_item_type: item_type,
-            path: Some(path),
+            path: Some(path.into()),
             system_conditions: None,
             event_data_conditions: None,
         }
     }
 
-    pub fn selector(path: String) -> QueryItem {
+    pub fn selector<T: Into<String>>(path: T) -> QueryItem {
         QueryItem::new(QueryItemType::Selector, path)
     }
 
-    pub fn suppressor(path: String) -> QueryItem {
+    pub fn suppressor<T: Into<String>>(path: T) -> QueryItem {
         QueryItem::new(QueryItemType::Suppressor, path)
     }
 
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn simple_level() {
         use crate::prelude::*;
-        let selector = QueryItem::new(QueryItemType::Selector, "Application".to_owned())
+        let selector = QueryItem::new(QueryItemType::Selector, "Application")
             .system_conditions(Condition::filter(EventFilter::level(1, Comparison::Equal)))
             .build();
         assert_eq!(

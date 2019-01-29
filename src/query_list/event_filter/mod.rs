@@ -6,7 +6,6 @@ pub mod data;
 pub mod event;
 pub mod level;
 pub mod provider;
-pub mod user;
 
 #[derive(Clone)]
 pub enum SystemFilter {
@@ -14,7 +13,6 @@ pub enum SystemFilter {
     EventID(event::Event),
     Level(level::Level),
     Provider(provider::Provider),
-    User(user::User),
 }
 
 #[derive(Clone)]
@@ -24,7 +22,7 @@ pub struct EventDataFilter {
 }
 
 impl EventDataFilter {
-    pub fn new(name: String, value: String) -> EventDataFilter {
+    pub fn new<T: Into<String>>(name: T, value: T) -> EventDataFilter {
         EventDataFilter {
             name: data::Name::new(name),
             value: data::Value::new(value),
@@ -39,7 +37,7 @@ pub enum EventFilter {
 }
 
 impl EventFilter {
-    pub fn computer(name: String) -> EventFilter {
+    pub fn computer<T: Into<String>>(name: T) -> EventFilter {
         EventFilter::System(SystemFilter::Computer(computer::Computer::new(name)))
     }
 
@@ -51,15 +49,11 @@ impl EventFilter {
         EventFilter::System(SystemFilter::Level(level::Level::new(level, comparison)))
     }
 
-    pub fn provider(name: String) -> EventFilter {
+    pub fn provider<T: Into<String>>(name: T) -> EventFilter {
         EventFilter::System(SystemFilter::Provider(provider::Provider::new(name)))
     }
 
-    pub fn user(sid: String) -> EventFilter {
-        EventFilter::System(SystemFilter::User(user::User::new(sid)))
-    }
-
-    pub fn event_data(name: String, value: String) -> EventFilter {
+    pub fn event_data<T: Into<String>>(name: T, value: T) -> EventFilter {
         EventFilter::EventData(EventDataFilter::new(name, value))
     }
 }
@@ -80,7 +74,6 @@ impl fmt::Display for SystemFilter {
             SystemFilter::EventID(item) => write!(f, "{}", item),
             SystemFilter::Level(item) => write!(f, "{}", item),
             SystemFilter::Provider(item) => write!(f, "{}", item),
-            SystemFilter::User(item) => write!(f, "{}", item),
         }
     }
 }
@@ -106,16 +99,16 @@ mod tests {
             .with_query(
                 Query::new()
                     .item(
-                        QueryItem::selector("Security".to_owned())
+                        QueryItem::selector("Security")
                             .system_conditions(Condition::or(conditions))
                             .build(),
                     )
                     .item(
-                        QueryItem::suppressor("Security".to_owned())
+                        QueryItem::suppressor("Security")
                             .system_conditions(Condition::filter(EventFilter::event(4624)))
                             .event_conditions(Condition::filter(EventFilter::event_data(
-                                "TargetUserName".to_owned(),
-                                "SYSTEM".to_owned(),
+                                "TargetUserName",
+                                "SYSTEM",
                             )))
                             .build(),
                     )

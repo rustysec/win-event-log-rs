@@ -6,8 +6,8 @@ pub struct Provider {
 }
 
 impl Provider {
-    pub fn new(name: String) -> Provider {
-        Provider { name: name }
+    pub fn new<T: Into<String>>(name: T) -> Provider {
+        Provider { name: name.into() }
     }
 }
 
