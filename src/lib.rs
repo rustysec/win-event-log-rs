@@ -37,7 +37,6 @@ extern crate serde;
 extern crate serde_derive;
 #[cfg(feature = "xml")]
 extern crate serde_xml_rs;
-extern crate widestring;
 extern crate winapi;
 
 mod api;

@@ -2,11 +2,12 @@
 use serde::Deserialize;
 #[cfg(feature = "xml")]
 use serde_xml_rs::from_str;
-use std::ffi::CString;
+use std::ffi::{CString, OsString};
 use std::fmt;
 use std::mem::transmute;
+use std::os::windows::ffi::OsStrExt;
+use std::os::windows::prelude::*;
 use std::ptr::null_mut;
-use widestring::U16String;
 use winapi::shared::minwindef::{BOOL, DWORD, PDWORD};
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::libloaderapi::{GetModuleHandleA, GetProcAddress, LoadLibraryA};
@@ -153,7 +154,14 @@ impl WinEvents {
         if EvtQuery.is_none() || EvtNext.is_none() || EvtRender.is_none() {
             Err("EvtQuery API is not available".to_owned())
         } else {
-            let ffi_query = U16String::from(query.into());
+            // Small hack to prevent occasional parsing errors from the Evt* API
+            let ffi_query = {
+                let mut tmp = OsString::from(query.into())
+                    .encode_wide()
+                    .collect::<Vec<u16>>();
+                tmp.append(&mut OsString::from("\0").encode_wide().collect::<Vec<u16>>());
+                tmp
+            };
             if let Some(EvtApi::Query(ref evt_query)) = *EvtQuery {
                 match unsafe {
                     evt_query(
@@ -289,8 +297,8 @@ impl Iterator for WinEventsIntoIterator {
                             ) {
                                 0 => None,
                                 _ => {
-                                    let s = U16String::from_vec(&buf[0..buf.len() / 2])
-                                        .to_string_lossy();
+                                    let s =
+                                        OsString::from_wide(&buf[..]).to_string_lossy().to_string();
                                     Some(Event(s))
                                 }
                             }
