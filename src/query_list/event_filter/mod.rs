@@ -18,9 +18,18 @@ pub enum SystemFilter {
 }
 
 #[derive(Clone)]
-pub enum EventDataFilter {
-    Name(data::Name),
-    Value(data::Value),
+pub struct EventDataFilter {
+    name: data::Name,
+    value: data::Value,
+}
+
+impl EventDataFilter {
+    pub fn new(name: String, value: String) -> EventDataFilter {
+        EventDataFilter {
+            name: data::Name::new(name),
+            value: data::Value::new(value),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -50,12 +59,8 @@ impl EventFilter {
         EventFilter::System(SystemFilter::User(user::User::new(sid)))
     }
 
-    pub fn name(name: String) -> EventFilter {
-        EventFilter::EventData(EventDataFilter::Name(data::Name::new(name)))
-    }
-
-    pub fn value(value: String) -> EventFilter {
-        EventFilter::EventData(EventDataFilter::Value(data::Value::new(value)))
+    pub fn event_data(name: String, value: String) -> EventFilter {
+        EventFilter::EventData(EventDataFilter::new(name, value))
     }
 }
 
@@ -82,9 +87,55 @@ impl fmt::Display for SystemFilter {
 
 impl fmt::Display for EventDataFilter {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            EventDataFilter::Name(item) => write!(f, "{}", item),
-            EventDataFilter::Value(item) => write!(f, "{}", item),
-        }
+        write!(f, "({} and {})", self.name, self.value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn complex_query() {
+        use crate::prelude::*;
+        let conditions = vec![
+            Condition::filter(EventFilter::event(4624)),
+            Condition::filter(EventFilter::event(1102)),
+        ];
+
+        let ql = QueryList::new()
+            .with_query(
+                Query::new()
+                    .item(
+                        QueryItem::selector("Security".to_owned())
+                            .system_conditions(Condition::or(conditions))
+                            .build(),
+                    )
+                    .item(
+                        QueryItem::suppressor("Security".to_owned())
+                            .system_conditions(Condition::filter(EventFilter::event(4624)))
+                            .event_conditions(Condition::filter(EventFilter::event_data(
+                                "TargetUserName".to_owned(),
+                                "SYSTEM".to_owned(),
+                            )))
+                            .build(),
+                    )
+                    .query(),
+            )
+            .build();
+        assert_eq!(
+            ql.to_string(),
+            r#"<QueryList>
+<Query Id="0">
+<Select Path="Security">
+*[System[((EventID = 4624) or (EventID = 1102))]]
+</Select>
+<Suppress Path="Security">
+*[System[(EventID = 4624)]]
+and
+*[EventData[((Data[@Name = 'TargetUserName'] and Data = 'SYSTEM'))]]
+</Suppress>
+</Query>
+</QueryList>"#
+        );
     }
 }

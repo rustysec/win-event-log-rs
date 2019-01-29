@@ -181,17 +181,17 @@ mod tests {
             Condition::filter(EventFilter::level(0, Comparison::Equal)),
             Condition::filter(EventFilter::level(4, Comparison::GreaterThanOrEqual)),
         ];
-        let event_conditions = vec![
-            Condition::filter(EventFilter::name("TargetUserName".to_owned())),
-            Condition::filter(EventFilter::value("SYSTEM".to_owned())),
-        ];
+        let event_conditions = Condition::filter(EventFilter::event_data(
+            "TargetUserName".to_owned(),
+            "SYSTEM".to_owned(),
+        ));
         let list = QueryList::new()
             .with_query(
                 Query::new()
                     .item(
                         QueryItem::new(QueryItemType::Selector, "Security".to_owned())
                             .system_conditions(Condition::or(system_conditions))
-                            .event_conditions(Condition::and(event_conditions))
+                            .event_conditions(event_conditions)
                             .build(),
                     )
                     .query(),
@@ -205,7 +205,7 @@ mod tests {
 <Select Path="Security">
 *[System[((Level = 0) or (Level >= 4))]]
 and
-*[EventData[((Data[@Name = 'TargetUserName']) and (Data = 'SYSTEM'))]]
+*[EventData[((Data[@Name = 'TargetUserName'] and Data = 'SYSTEM'))]]
 </Select>
 </Query>
 </QueryList>"#

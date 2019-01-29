@@ -55,13 +55,6 @@ impl<'a> QueryItem {
 
     pub fn build(&self) -> Self {
         self.clone()
-        /*
-        QueryItem {
-            path: self.path.clone(),
-            system_conditions: self.system_conditions.clone(),
-            event_data_conditions: self.event_data_conditions.clone(),
-        }
-        */
     }
 }
 
@@ -78,7 +71,7 @@ impl fmt::Display for QueryItem {
                     parts.push(format!("*[EventData[{}]]", conditions))
                 }
                 write!(f, "{}", parts.join("\nand\n"))?;
-                write!(f, "\n</Select>")
+                write!(f, "\n</{}>", self.query_item_type)
             }
             None => write!(f, ""),
         }
