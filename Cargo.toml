@@ -19,8 +19,7 @@ serde_derive = { version = "1.0.85", optional = true, default-features = false }
 [dependencies.serde-xml-rs]
 version = "0.3.0"
 optional = true
-git = "https://github.com/rustysec/serde-xml-rs"
-branch = "feature/legacy-support"
+git = "https://github.com/rreverser/serde-xml-rs"
 features=["legacy-support"]
 default-features=false
  
