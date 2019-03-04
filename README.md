@@ -2,6 +2,8 @@
 
 A library for simple interface into the Windows Event Log system.
 
+[![Build Status](https://travis-ci.org/rustysec/win-event-log-rs.svg?branch=master)](https://travis-ci.org/rustysec/win-event-log-rs)
+
 ## Usage
 ```toml
 [dependencies]
