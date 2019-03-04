@@ -1,3 +1,4 @@
+#[allow(non_upper_case_globals)]
 #[cfg(feature = "xml")]
 use serde::Deserialize;
 #[cfg(feature = "xml")]
