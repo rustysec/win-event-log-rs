@@ -1,0 +1,32 @@
+language: rust
+services:
+- docker
+
+matrix:
+  include:
+    - os: linux
+      rust: stable
+      env: TARGET=x86_64-pc-windows-gnu NO_RUN=1 DOCKER=mingw
+    - os: linux
+      rust: beta
+      env: TARGET=x86_64-pc-windows-gnu NO_RUN=1 DOCKER=mingw
+    - os: linux
+      rust: nightly
+      env: TARGET=x86_64-pc-windows-gnu NO_RUN=1 DOCKER=mingw
+
+script:
+  - curl --version
+  - cargo generate-lockfile
+  - mkdir .cargo target;
+    docker build -t rust -f ci/Dockerfile-$DOCKER ci;
+    docker run
+     -w /src
+     -v `pwd`:/src:ro
+     -v `pwd`/target:/src/target
+     -v `pwd`/ci/.cargo:/src/.cargo:ro
+     -v `rustc --print sysroot`:/usr/local:ro
+     -e TARGET=$TARGET
+     -e NO_RUN=$NO_RUN
+     -e CARGO_TARGET_DIR=/src/target
+     -it rust
+     sh ci/run.sh

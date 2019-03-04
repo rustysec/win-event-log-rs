@@ -11,6 +11,7 @@ use std::ptr::null_mut;
 use winapi::shared::minwindef::{BOOL, DWORD, PDWORD};
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::libloaderapi::{GetModuleHandleA, GetProcAddress, LoadLibraryA};
+use winapi::um::winevt::EVT_SUBSCRIBE_CALLBACK;
 use winapi::um::winnt::{HANDLE, LPCWSTR, PVOID};
 
 bitflags! {
@@ -23,7 +24,7 @@ bitflags! {
     }
 }
 
-type EvtHandle = HANDLE;
+pub type EvtHandle = HANDLE;
 type PevtHandle = *mut HANDLE;
 
 /// Defines the EvtQuery() function signature, for lazy loading
@@ -58,12 +59,25 @@ type EvtRenderFn = unsafe extern "system" fn(
 /// Defines the EvtClose() function signature, for lazy loading
 type EvtCloseFn = unsafe extern "system" fn(Object: EvtHandle) -> BOOL;
 
+/// Defines the EvtSubscribe() function signature, for lazy loading
+type EvtSubscribeFn = unsafe extern "system" fn(
+    Session: EvtHandle,
+    SignalEvent: HANDLE,
+    ChannelPath: LPCWSTR,
+    Query: LPCWSTR,
+    Bookmark: EvtHandle,
+    Context: PVOID,
+    Callback: EVT_SUBSCRIBE_CALLBACK,
+    Flags: DWORD,
+) -> EvtHandle;
+
 #[derive(Clone)]
 pub enum EvtApi {
     Close(EvtCloseFn),
     Next(EvtNextFn),
     Query(EvtQueryFn),
     Render(EvtRenderFn),
+    Subscribe(EvtSubscribeFn),
 }
 
 /// Simply tries to dynamically load a function from `wevtapi.dll`, if the
@@ -99,6 +113,9 @@ fn try_load_from_dll(function: &str) -> Option<EvtApi> {
                 "EvtRender" => Some(EvtApi::Render(unsafe {
                     transmute::<HANDLE, EvtRenderFn>(addr as _)
                 })),
+                "EvtSubscribe" => Some(EvtApi::Subscribe(unsafe {
+                    transmute::<HANDLE, EvtSubscribeFn>(addr as _)
+                })),
                 _ => None,
             },
         },
@@ -111,9 +128,10 @@ lazy_static! {
     pub static ref EvtNext: Option<EvtApi> = { try_load_from_dll("EvtNext") };
     pub static ref EvtQuery: Option<EvtApi> = { try_load_from_dll("EvtQuery") };
     pub static ref EvtRender: Option<EvtApi> = { try_load_from_dll("EvtRender") };
+    pub static ref EvtSubscribe: Option<EvtApi> = { try_load_from_dll("EvtSubscribe") };
 }
 
-pub struct EvtHandleWrapper(EvtHandle);
+pub struct EvtHandleWrapper(pub EvtHandle);
 
 impl Drop for EvtHandleWrapper {
     fn drop(&mut self) {
@@ -212,6 +230,13 @@ impl WinEvents {
             }
         } else {
             None
+        }
+    }
+
+    /// Create a `WinEvents` from existing event handle
+    pub fn new(handle: EvtHandle) -> WinEvents {
+        WinEvents {
+            handle: Some(EvtHandleWrapper(handle)),
         }
     }
 }
