@@ -6,7 +6,7 @@ mod event_filter;
 mod query_item;
 
 pub use self::condition::Condition;
-pub use self::event_filter::EventFilter;
+pub use self::event_filter::{time, EventFilter};
 pub use self::query_item::{QueryItem, QueryItemType};
 
 #[derive(Clone)]

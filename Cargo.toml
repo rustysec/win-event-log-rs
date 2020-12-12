@@ -26,6 +26,6 @@ version = "0.3.6"
 features = [ "errhandlingapi", "minwindef", "winnt", "winevt", "libloaderapi", "synchapi", "winbase", "handleapi" ]
 
 [features]
-default = ["xml"]
+default = ["xml","subscriber"]
 xml = ["serde", "serde_derive", "serde-xml-rs"]
 subscriber = []
