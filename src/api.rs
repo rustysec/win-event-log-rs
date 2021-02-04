@@ -147,7 +147,7 @@ impl Drop for EvtHandleWrapper {
 
 /// Entry point for querying the event log
 pub struct WinEvents {
-    handle: Option<EvtHandleWrapper>,
+    pub handle: Option<EvtHandleWrapper>,
 }
 
 impl WinEvents {
