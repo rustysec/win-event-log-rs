@@ -1,13 +1,14 @@
-#[allow(dead_code)]
 use std::fmt;
 
 mod condition;
 mod event_filter;
 mod query_item;
 
-pub use self::condition::Condition;
-pub use self::event_filter::EventFilter;
-pub use self::query_item::{QueryItem, QueryItemType};
+pub use self::{
+    condition::Condition,
+    event_filter::EventFilter,
+    query_item::{QueryItem, QueryItemType},
+};
 
 #[derive(Clone)]
 /// Comparison conditions supported by the Windows Event Log
@@ -36,12 +37,18 @@ pub struct QueryList {
     queries: Vec<Query>,
 }
 
+impl Default for QueryList {
+    fn default() -> Self {
+        Self {
+            queries: Vec::new(),
+        }
+    }
+}
+
 impl<'a> QueryList {
     /// Create a new `QueryList`
     pub fn new() -> QueryList {
-        QueryList {
-            queries: Vec::new(),
-        }
+        Self::default()
     }
 
     /// Add a `Query` to a `QueryList`
@@ -60,21 +67,19 @@ impl<'a> QueryList {
 
 impl fmt::Display for QueryList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut index = 0;
         write!(f, "<QueryList>")?;
-        for query in (*self.queries).iter() {
+        for (index, query) in (*self.queries).iter().enumerate() {
             write!(f, "\n<Query Id=\"{}\">\n", index)?;
             write!(f, "{}", query)?;
             write!(f, "</Query>")?;
-            index += 1;
         }
         write!(f, "\n</QueryList>")
     }
 }
 
-impl Into<String> for QueryList {
-    fn into(self) -> String {
-        self.to_string()
+impl From<QueryList> for String {
+    fn from(ql: QueryList) -> Self {
+        ql.to_string()
     }
 }
 
@@ -83,10 +88,16 @@ pub struct Query {
     items: Vec<QueryItem>,
 }
 
+impl Default for Query {
+    fn default() -> Self {
+        Self { items: Vec::new() }
+    }
+}
+
 impl<'a> Query {
     /// Create a new `Query`
     pub fn new() -> Query {
-        Query { items: Vec::new() }
+        Self::default()
     }
 
     /// Add `QueryItem` to `Query`
@@ -106,7 +117,7 @@ impl<'a> Query {
 impl std::fmt::Display for Query {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         for item in (*self.items).iter() {
-            write!(f, "{}\n", item)?;
+            writeln!(f, "{}", item)?;
         }
         Ok(())
     }

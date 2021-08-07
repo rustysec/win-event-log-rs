@@ -9,10 +9,7 @@ pub struct Level {
 
 impl Level {
     pub fn new(level: u32, comparison: Comparison) -> Level {
-        Level {
-            level: level,
-            comparison: comparison,
-        }
+        Level { level, comparison }
     }
 }
 

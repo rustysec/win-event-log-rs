@@ -1,18 +1,18 @@
 use crate::api::{Event, EvtApi, EvtSubscribe, WinEvents, WinEventsIntoIterator};
-use std::ffi::OsString;
-use std::os::windows::ffi::OsStrExt;
-use std::ptr::null_mut;
-use winapi::um::handleapi::CloseHandle;
-use winapi::um::synchapi::{CreateEventA, WaitForSingleObject};
-use winapi::um::winbase::{INFINITE, WAIT_OBJECT_0};
-use winapi::um::winevt::EvtSubscribeStartAtOldestRecord;
-use winapi::um::winnt::HANDLE;
+use std::{ffi::OsString, os::windows::ffi::OsStrExt, ptr::null_mut};
+use winapi::um::{
+    handleapi::CloseHandle,
+    synchapi::{CreateEventA, WaitForSingleObject},
+    winbase::{INFINITE, WAIT_OBJECT_0},
+    winevt::EvtSubscribeStartAtOldestRecord,
+    winnt::HANDLE,
+};
 
 pub struct HandleWrapper(HANDLE);
 
 impl Drop for HandleWrapper {
     fn drop(&mut self) {
-        if self.0 != null_mut() {
+        if !self.0.is_null() {
             unsafe {
                 CloseHandle(self.0);
             }
@@ -58,9 +58,12 @@ impl WinEventsSubscriber {
             Err("There is an error calling the EvtSubscribe() API".to_owned())
         }
     }
+}
 
-    /// Gets the next item from the event log. If there are no more evens `None` is returned.
-    pub fn next(&mut self) -> Option<Event> {
+impl Iterator for WinEventsSubscriber {
+    type Item = Event;
+
+    fn next(&mut self) -> Option<Event> {
         match self.signal {
             Some(ref mut signal) => {
                 if !self.has_events {

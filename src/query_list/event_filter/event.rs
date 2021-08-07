@@ -7,7 +7,7 @@ pub struct Event {
 
 impl Event {
     pub fn new(id: u32) -> Event {
-        Event { id: id }
+        Event { id }
     }
 }
 

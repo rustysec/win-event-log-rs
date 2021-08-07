@@ -63,7 +63,7 @@ impl fmt::Display for QueryItem {
         match self.path {
             Some(ref path) => {
                 let mut parts = Vec::new();
-                write!(f, "<{} Path=\"{}\">\n", self.query_item_type, path)?;
+                writeln!(f, "<{} Path=\"{}\">", self.query_item_type, path)?;
                 if let Some(ref conditions) = self.system_conditions {
                     parts.push(format!("*[System[{}]]", conditions))
                 }

@@ -4,17 +4,22 @@
 use serde::Deserialize;
 #[cfg(feature = "xml")]
 use serde_xml_rs::from_str;
-use std::ffi::{CString, OsString};
-use std::fmt;
-use std::mem::transmute;
-use std::os::windows::ffi::OsStrExt;
-use std::os::windows::prelude::*;
-use std::ptr::null_mut;
-use winapi::shared::minwindef::{BOOL, DWORD, PDWORD};
-use winapi::um::errhandlingapi::GetLastError;
-use winapi::um::libloaderapi::{GetModuleHandleA, GetProcAddress, LoadLibraryA};
-use winapi::um::winevt::EVT_SUBSCRIBE_CALLBACK;
-use winapi::um::winnt::{HANDLE, LPCWSTR, PVOID};
+use std::{
+    ffi::{CString, OsString},
+    fmt,
+    mem::transmute,
+    os::windows::{ffi::OsStrExt, prelude::*},
+    ptr::null_mut,
+};
+use winapi::{
+    shared::minwindef::{BOOL, DWORD, PDWORD},
+    um::{
+        errhandlingapi::GetLastError,
+        libloaderapi::{GetModuleHandleA, GetProcAddress, LoadLibraryA},
+        winevt::EVT_SUBSCRIBE_CALLBACK,
+        winnt::{HANDLE, LPCWSTR, PVOID},
+    },
+};
 
 bitflags! {
     struct EvtQueryOptions: u32 {
@@ -93,16 +98,16 @@ fn try_load_from_dll(function: &str) -> Option<EvtApi> {
     let ffi_function = CString::new(function).unwrap();
 
     let handle = match unsafe { GetModuleHandleA(ffi_module.as_ptr()) } {
-        i if i == null_mut() => match unsafe { LoadLibraryA(ffi_module.as_ptr()) } {
-            j if j == null_mut() => None,
+        i if i.is_null() => match unsafe { LoadLibraryA(ffi_module.as_ptr()) } {
+            j if j.is_null() => None,
             j => Some(j),
         },
         i => Some(i),
     };
     match handle {
         Some(h) => match unsafe { GetProcAddress(h, ffi_function.as_ptr()) } {
-            i if i == null_mut() => None,
-            addr => match function.as_ref() {
+            i if i.is_null() => None,
+            addr => match function {
                 "EvtClose" => Some(EvtApi::Close(unsafe {
                     transmute::<HANDLE, EvtCloseFn>(addr as _)
                 })),
@@ -126,11 +131,11 @@ fn try_load_from_dll(function: &str) -> Option<EvtApi> {
 }
 
 lazy_static! {
-    pub static ref EvtClose: Option<EvtApi> = { try_load_from_dll("EvtClose") };
-    pub static ref EvtNext: Option<EvtApi> = { try_load_from_dll("EvtNext") };
-    pub static ref EvtQuery: Option<EvtApi> = { try_load_from_dll("EvtQuery") };
-    pub static ref EvtRender: Option<EvtApi> = { try_load_from_dll("EvtRender") };
-    pub static ref EvtSubscribe: Option<EvtApi> = { try_load_from_dll("EvtSubscribe") };
+    pub static ref EvtClose: Option<EvtApi> = try_load_from_dll("EvtClose");
+    pub static ref EvtNext: Option<EvtApi> = try_load_from_dll("EvtNext");
+    pub static ref EvtQuery: Option<EvtApi> = try_load_from_dll("EvtQuery");
+    pub static ref EvtRender: Option<EvtApi> = try_load_from_dll("EvtRender");
+    pub static ref EvtSubscribe: Option<EvtApi> = try_load_from_dll("EvtSubscribe");
 }
 
 pub struct EvtHandleWrapper(pub EvtHandle);
@@ -191,7 +196,7 @@ impl WinEvents {
                         EvtQueryOptions::EvtQueryChannelPath.bits(),
                     )
                 } {
-                    i if i == null_mut() => Err(format!(
+                    i if i.is_null() => Err(format!(
                         "There was an error processing the query: {}",
                         unsafe { GetLastError() }
                     )),
@@ -206,7 +211,7 @@ impl WinEvents {
     }
 
     /// Gets the next item from the event log. If there are no more evens `None` is returned.
-    pub fn next(&mut self) -> Option<EvtHandleWrapper> {
+    fn next_handle(&mut self) -> Option<EvtHandleWrapper> {
         if let Some(ref handle) = self.handle {
             let mut next_handle: Vec<EvtHandle> = vec![null_mut() as _];
             match *EvtNext {
@@ -295,7 +300,7 @@ impl Iterator for WinEventsIntoIterator {
 
     /// Returns the next event. If there are no more events, `None` is returned.
     fn next(&mut self) -> Option<Event> {
-        match self.win_events.next() {
+        match self.win_events.next_handle() {
             Some(handle) => match *EvtRender {
                 Some(EvtApi::Render(ref render)) => {
                     let mut buffer_used: DWORD = 0;
