@@ -300,8 +300,8 @@ impl Iterator for WinEventsIntoIterator {
                 Some(EvtApi::Render(ref render)) => {
                     let mut buffer_used: DWORD = 0;
                     let mut property_count: DWORD = 0;
-                    unsafe {
-                        if render(
+                    
+                        if unsafe { render(
                             null_mut(),
                             handle.0 as _,
                             1,
@@ -310,10 +310,10 @@ impl Iterator for WinEventsIntoIterator {
                             &mut buffer_used,
                             &mut property_count,
                         ) == 0
-                            && GetLastError() == 122
+                            && GetLastError() == 122 }
                         {
                             let mut buf: Vec<u16> = vec![0; buffer_used as usize];
-                            match render(
+                            match unsafe { render(
                                 null_mut(),
                                 handle.0 as _,
                                 1,
@@ -321,7 +321,7 @@ impl Iterator for WinEventsIntoIterator {
                                 buf.as_mut_ptr() as _,
                                 &mut buffer_used,
                                 &mut property_count,
-                            ) {
+                            ) } {
                                 0 => None,
                                 _ => {
                                     let s =
@@ -332,7 +332,7 @@ impl Iterator for WinEventsIntoIterator {
                         } else {
                             None
                         }
-                    }
+                    
                 }
                 _ => None,
             },
