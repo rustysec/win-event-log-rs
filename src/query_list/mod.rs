@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 use std::fmt;
 
 mod condition;
@@ -31,7 +30,7 @@ impl std::fmt::Display for Comparison {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct QueryList {
     queries: Vec<Query>,
 }
@@ -39,9 +38,7 @@ pub struct QueryList {
 impl<'a> QueryList {
     /// Create a new `QueryList`
     pub fn new() -> QueryList {
-        QueryList {
-            queries: Vec::new(),
-        }
+        Default::default()
     }
 
     /// Add a `Query` to a `QueryList`
@@ -60,25 +57,23 @@ impl<'a> QueryList {
 
 impl fmt::Display for QueryList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut index = 0;
         write!(f, "<QueryList>")?;
-        for query in (*self.queries).iter() {
-            write!(f, "\n<Query Id=\"{}\">\n", index)?;
-            write!(f, "{}", query)?;
+        for (index, query) in (*self.queries).iter().enumerate() {
+            write!(f, "\n<Query Id=\"{index}\">\n")?;
+            write!(f, "{query}")?;
             write!(f, "</Query>")?;
-            index += 1;
         }
         write!(f, "\n</QueryList>")
     }
 }
 
-impl Into<String> for QueryList {
-    fn into(self) -> String {
-        self.to_string()
+impl From<QueryList> for String {
+    fn from(value: QueryList) -> Self {
+        value.to_string()
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Query {
     items: Vec<QueryItem>,
 }
@@ -86,7 +81,7 @@ pub struct Query {
 impl<'a> Query {
     /// Create a new `Query`
     pub fn new() -> Query {
-        Query { items: Vec::new() }
+        Default::default()
     }
 
     /// Add `QueryItem` to `Query`
@@ -106,7 +101,7 @@ impl<'a> Query {
 impl std::fmt::Display for Query {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         for item in (*self.items).iter() {
-            write!(f, "{}\n", item)?;
+            writeln!(f, "{item}")?;
         }
         Ok(())
     }

@@ -12,8 +12,6 @@ win-event-log = { git = "https://github.com/rustysec/win-event-log-rs" }
 
 This example will print the raw XML event from the event log:
 ```rust
-extern crate win_event_log;
-
 use win_event_log::prelude::*;
 
 fn main() {

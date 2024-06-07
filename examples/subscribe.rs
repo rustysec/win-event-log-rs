@@ -1,13 +1,8 @@
-extern crate win_event_log;
-#[macro_use]
-#[cfg(feature = "xml")]
-extern crate serde_derive;
+#![allow(dead_code)]
 
-use std::thread::sleep;
-use std::time::Duration;
-#[cfg(feature = "xml")]
-use win_event_log::prelude::*;
+use serde::Deserialize;
 
+#[cfg(feature = "xml")]
 #[cfg(feature = "xml")]
 #[derive(Deserialize, Default, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -30,8 +25,11 @@ struct MyEvent {
     pub system: Option<System>,
 }
 
-#[cfg(feature = "xml")]
+#[cfg(all(feature = "xml", feature = "subscriber"))]
 fn main() {
+    use std::{thread::sleep, time::Duration};
+    use win_event_log::prelude::*;
+
     let conditions = vec![
         Condition::filter(EventFilter::level(1, Comparison::Equal)),
         Condition::filter(EventFilter::level(4, Comparison::GreaterThanOrEqual)),
@@ -67,7 +65,7 @@ fn main() {
     }
 }
 
-#[cfg(not(feature = "xml"))]
+#[cfg(not(all(feature = "xml", feature = "subscriber")))]
 fn main() {
     println!("This example requires serde");
 }

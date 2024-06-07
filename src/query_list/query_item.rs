@@ -63,12 +63,12 @@ impl fmt::Display for QueryItem {
         match self.path {
             Some(ref path) => {
                 let mut parts = Vec::new();
-                write!(f, "<{} Path=\"{}\">\n", self.query_item_type, path)?;
+                writeln!(f, "<{} Path=\"{path}\">", self.query_item_type)?;
                 if let Some(ref conditions) = self.system_conditions {
-                    parts.push(format!("*[System[{}]]", conditions))
+                    parts.push(format!("*[System[{conditions}]]"))
                 }
                 if let Some(ref conditions) = self.event_data_conditions {
-                    parts.push(format!("*[EventData[{}]]", conditions))
+                    parts.push(format!("*[EventData[{conditions}]]"))
                 }
                 write!(f, "{}", parts.join("\nand\n"))?;
                 write!(f, "\n</{}>", self.query_item_type)

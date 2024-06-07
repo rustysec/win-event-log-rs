@@ -1,8 +1,7 @@
-extern crate win_event_log;
-#[macro_use]
-#[cfg(feature = "xml")]
-extern crate serde_derive;
+#![allow(dead_code)]
 
+#[cfg(feature = "xml")]
+use serde::Deserialize;
 #[cfg(feature = "xml")]
 use win_event_log::prelude::*;
 
@@ -50,10 +49,10 @@ fn main() {
         Ok(events) => {
             if let Some(event) = events.into_iter().next() {
                 let parsed: MyEvent = event.into();
-                println!("Parsed: {:?}", parsed);
+                println!("Parsed: {parsed:?}");
             }
         }
-        Err(e) => println!("Error: {}", e),
+        Err(err) => println!("Error: {err}"),
     }
 }
 

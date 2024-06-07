@@ -1,5 +1,3 @@
-extern crate win_event_log;
-
 use win_event_log::prelude::*;
 
 fn main() {
