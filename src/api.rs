@@ -1,13 +1,12 @@
 #![allow(non_upper_case_globals)]
 
 #[cfg(feature = "xml")]
-use serde::Deserialize;
+use quick_xml::de::from_str;
 #[cfg(feature = "xml")]
-use serde_xml_rs::from_str;
+use serde::de::DeserializeOwned;
 use std::ffi::{CString, OsString};
 use std::fmt;
 use std::mem::transmute;
-use std::os::windows::ffi::OsStrExt;
 use std::os::windows::prelude::*;
 use std::ptr::null_mut;
 use winapi::shared::minwindef::{BOOL, DWORD, PDWORD};
@@ -262,14 +261,21 @@ impl fmt::Display for Event {
 
 #[cfg(feature = "xml")]
 impl Event {
-    pub fn into<'de, T>(self) -> T
+    pub fn into<T>(self) -> T
     where
-        T: Deserialize<'de> + Default,
+        T: DeserializeOwned + Default,
     {
-        match from_str(&self.0) {
+        match from_str::<T>(&self.0) {
             Ok(o) => o,
             _ => Default::default(),
         }
+    }
+
+    pub fn try_into<T>(self) -> Result<T, String>
+    where
+        T: DeserializeOwned + Default,
+    {
+        from_str::<T>(&self.0).map_err(|err| format!("Deserialization error: {err}"))
     }
 }
 

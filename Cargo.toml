@@ -17,16 +17,16 @@ lazy_static = "1.2.0"
 serde = { version = "1.0.85", optional = true, features = [ "derive" ] }
 serde_derive = { version = "1.0.85", optional = true, default-features = false }
 
-[dependencies.serde-xml-rs]
-version = "0.6.0"
+[dependencies.quick-xml]
+version = "0.31"
 optional = true
-default-features = false
+features = ["serialize"]
  
 [dependencies.winapi]
 version = "0.3.6"
-features = [ "errhandlingapi", "minwindef", "winnt", "winevt", "libloaderapi", "synchapi", "winbase", "handleapi" ]
+features = ["errhandlingapi", "minwindef", "winnt", "winevt", "libloaderapi", "synchapi", "winbase", "handleapi"]
 
 [features]
 default = ["xml"]
-xml = ["serde", "serde-xml-rs"]
+xml = ["serde", "quick-xml"]
 subscriber = []

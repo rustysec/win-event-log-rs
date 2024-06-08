@@ -31,9 +31,9 @@ extern crate bitflags;
 #[macro_use]
 extern crate lazy_static;
 #[cfg(feature = "xml")]
-extern crate serde;
+extern crate quick_xml;
 #[cfg(feature = "xml")]
-extern crate serde_xml_rs;
+extern crate serde;
 extern crate winapi;
 
 mod api;
