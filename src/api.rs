@@ -319,13 +319,14 @@ impl Iterator for WinEventsIntoIterator {
                         ) == 0
                             && GetLastError() == 122
                     } {
-                        let mut buf: Vec<u16> = vec![0; buffer_used as usize];
+                        let buf_len = buffer_used as usize / std::mem::size_of::<u16>();
+                        let mut buf: Vec<u16> = vec![0; buf_len];
                         match unsafe {
                             render(
                                 null_mut(),
                                 handle.0 as _,
                                 1,
-                                buf.len() as _,
+                                (buf.len() * std::mem::size_of::<u16>()) as _,
                                 buf.as_mut_ptr() as _,
                                 &mut buffer_used,
                                 &mut property_count,
@@ -333,7 +334,14 @@ impl Iterator for WinEventsIntoIterator {
                         } {
                             0 => None,
                             _ => {
-                                let s = OsString::from_wide(&buf[..]).to_string_lossy().to_string();
+                                if buf.is_empty() {
+                                    return Some(Event(String::new()));
+                                }
+                                debug_assert_eq!(buf.last(), Some(&0u16));
+                                let nul_trimmed = buf.len() - 1;
+                                let s = OsString::from_wide(&buf[..nul_trimmed])
+                                    .to_string_lossy()
+                                    .to_string();
                                 Some(Event(s))
                             }
                         }
